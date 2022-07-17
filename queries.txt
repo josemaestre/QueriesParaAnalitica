@@ -1,0 +1,91 @@
+--  (Q1)
+select count(*) from hechos_llamadas
+
+-- (Q2)
+SELECT t.Anio,SUM(fallas) fallas, SUM(exitos) exitos, SUM(intentos) intentos
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+GROUP BY 1
+
+
+-- (Q3)
+SELECT t.Anio,u.region_nombre,
+  SUM(intentos) AS intentos,
+  SUM(exitos) AS exitos,
+  ((cast(SUM(exitos) as float) * 100) / SUM(intentos)) AS p_contestadas,
+  ((((cast(SUM(exitos) as float)+ SUM(oc)) + SUM(nc)) * 100) / SUM(intentos)) AS p_completadas,
+  SUM(fallas) AS no_exitosas,
+  ((cast(SUM(fallas) as float) / SUM(intentos)) * 100) AS p_no_exitosa,
+  SUM(oc) AS oc,
+  SUM(nc) AS nc,
+  SUM(comp_cliente) AS lib_cliente,
+  SUM(fallas_nc) AS fallas_red,
+  ((cast(SUM(fallas_nc) as float)/ SUM(intentos)) * 100) AS p_fallas_red
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+WHERE t.anio = '2015' OR t.anio = '2017'
+GROUP BY 1,2
+
+-- (Q4)
+SELECT t.Anio,u.region_nombre,ha.hora,
+  SUM(intentos) AS intentos,
+  SUM(exitos) AS exitos,
+  ((cast(SUM(exitos) as float) * 100) / SUM(intentos)) AS p_contestadas,
+  ((((cast(SUM(exitos) as float)+ SUM(oc)) + SUM(nc)) * 100) / SUM(intentos)) AS p_completadas,
+  SUM(fallas) AS no_exitosas,
+  ((cast(SUM(fallas) as float) / SUM(intentos)) * 100) AS p_no_exitosa,
+  SUM(oc) AS oc,
+  SUM(nc) AS nc,
+  SUM(comp_cliente) AS lib_cliente,
+  SUM(fallas_nc) AS fallas_red,
+  ((cast(SUM(fallas_nc) as float)/ SUM(intentos)) * 100) AS p_fallas_red
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+JOIN  dim_horas ha ON ha.horask = h.id_hora
+WHERE t.anio = '2017' 
+GROUP BY 1,2,3
+
+-- Q5
+SELECT t.Anio,t.nmes3l as mes,u.region_nombre,ha.hora,
+  SUM(intentos) AS intentos,
+  SUM(exitos) AS exitos,
+  ((cast(SUM(exitos) as float) * 100) / SUM(intentos)) AS p_contestadas,
+  ((((cast(SUM(exitos) as float)+ SUM(oc)) + SUM(nc)) * 100) / SUM(intentos)) AS p_completadas,
+  SUM(fallas) AS no_exitosas,
+  ((cast(SUM(fallas) as float) / SUM(intentos)) * 100) AS p_no_exitosa,
+  SUM(oc) AS oc,
+  SUM(nc) AS nc,
+  SUM(comp_cliente) AS lib_cliente,
+  SUM(fallas_nc) AS fallas_red,
+  ((cast(SUM(fallas_nc) as float)/ SUM(intentos)) * 100) AS p_fallas_red
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+JOIN  dim_horas ha ON ha.horask = h.id_hora
+WHERE t.anio = '2015' 
+GROUP BY 1,2,3,4
+
+-- Q6
+SELECT t.Anio,u.region_nombre,ha.hora,co.nombre as trafico,
+ SUM(intentos) AS intentos,
+  SUM(exitos) AS exitos,
+  ((cast(SUM(exitos) as float) * 100) / SUM(intentos)) AS p_contestadas,
+  ((((cast(SUM(exitos) as float)+ SUM(oc)) + SUM(nc)) * 100) / SUM(intentos)) AS p_completadas,
+  SUM(fallas) AS no_exitosas,
+  ((cast(SUM(fallas) as float) / SUM(intentos)) * 100) AS p_no_exitosa,
+  SUM(oc) AS oc,
+  SUM(nc) AS nc,
+  SUM(comp_cliente) AS lib_cliente,
+  SUM(fallas_nc) AS fallas_red,
+  ((cast(SUM(fallas_nc) as float)/ SUM(intentos)) * 100) AS p_fallas_red
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+JOIN  dim_horas ha ON ha.horask = h.id_hora
+JOIN dim_traficos co on co.traficosk = h.id_trafico
+WHERE t.anio = '2016' 
+and ha.hora = '10'
+GROUP BY 1,2,3,4
+order by 2,1

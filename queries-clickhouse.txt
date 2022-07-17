@@ -1,0 +1,150 @@
+-- (Q1)
+select count(*) from hechos_llamadas
+
+-- (Q2)
+SELECT t.Anio,SUM(fallas) fallas, SUM(exitos) exitos, SUM(intentos) intentos
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+GROUP BY 1
+
+-- (Q3)
+SELECT t.Anio,u.region_nombre,
+  SUM(intentos) AS intentos,
+  SUM(exitos) AS exitos,
+  ((SUM(exitos)  * 100) / SUM(intentos)) AS p_contestadas,
+  (((SUM(exitos) + SUM(oc) + SUM(nc)) * 100) / SUM(intentos)) AS p_completadas,
+  SUM(fallas) AS no_exitosas,
+  ((SUM(fallas)  / SUM(intentos)) * 100) AS p_no_exitosa,
+  SUM(oc) AS oc,
+  SUM(nc) AS nc,
+  SUM(comp_cliente) AS lib_cliente,
+  SUM(fallas_nc) AS fallas_red,
+  ((SUM(fallas_nc) / SUM(intentos)) * 100) AS p_fallas_red
+FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+WHERE t.anio = '2015' OR t.anio = '2017'
+GROUP BY 1,2
+
+-- (Q4)
+SELECT t.Anio,u.region_nombre,ha.hora,
+  dim_tiempo.Anio,
+    SUM(intentos) AS intentosP,
+    SUM(exitos) AS exitosP,
+    (exitosP * 100) / intentosP AS p_contestadas,
+    (((exitosP + SUM(oc)) + SUM(nc)) * 100) / SUM(intentos) AS p_completadas,
+    SUM(fallas) AS no_exitosas,
+    (no_exitosas / intentosP) * 100 AS p_no_exitosa,
+    SUM(oc) AS oc_,
+    SUM(nc) AS nc_,
+    SUM(comp_cliente) AS lib_cliente,
+    SUM(fallas_nc) AS fallas_red,
+    (fallas_red / intentosP) * 100 AS p_fallas_red
+  FROM hechos_llamadas h
+JOIN  dim_tiempo t ON t.fechask= h.id_fecha
+JOIN  dim_uas u ON u.idsk= h.id_ua
+JOIN  dim_horas ha ON ha.horask = h.id_hora
+WHERE t.anio = '2017' 
+GROUP BY 1,2,3
+
+-- (Q5)
+SELECT dim_tiempo.Anio,dim_tiempo.NMes3L as mes,dim_uas.region_nombre,dim_horas.hora,
+                    SUM(intentos) AS intentosP,
+                      SUM(exitos) AS exitosP,
+                      (exitosP * 100) / intentosP AS p_contestadas,
+                      (((exitosP + SUM(oc)) + SUM(nc)) * 100) / SUM(intentos) AS p_completadas,
+                      SUM(fallas) AS no_exitosas,
+                      (no_exitosas / intentosP) * 100 AS p_no_exitosa,
+                      SUM(oc) AS oc_,
+                      SUM(nc) AS nc_,
+                      SUM(comp_cliente) AS lib_cliente,
+                      SUM(fallas_nc) AS fallas_red,
+                      (fallas_red / intentosP) * 100 AS p_fallas_red
+                  FROM hechos_llamadas h
+                  JOIN  dim_tiempo  ON dim_tiempo.FechaSK= hechos_llamadas.id_fecha
+                  JOIN  dim_uas  ON dim_uas.idSK= hechos_llamadas.id_ua
+                  JOIN  dim_horas ha ON dim_horas.horaSK = hechos_llamadas.id_hora
+                  WHERE dim_tiempo.Anio = '2015' 
+                  GROUP BY dim_tiempo.Anio,dim_tiempo.NMes3L,dim_uas.region_nombre,dim_horas.hora
+
+
+-- (Q6)
+SELECT dim_tiempo.Anio,dim_uas.region_nombre,dim_horas.hora,dim_traficos.nombre as trafico,
+                    SUM(intentos) AS intentosP,
+                      SUM(exitos) AS exitosP,
+                      (exitosP * 100) / intentosP AS p_contestadas,
+                      (((exitosP + SUM(oc)) + SUM(nc)) * 100) / SUM(intentos) AS p_completadas,
+                      SUM(fallas) AS no_exitosas,
+                      (no_exitosas / intentosP) * 100 AS p_no_exitosa,
+                      SUM(oc) AS oc_,
+                      SUM(nc) AS nc_,
+                      SUM(comp_cliente) AS lib_cliente,
+                      SUM(fallas_nc) AS fallas_red,
+                      (fallas_red / intentosP) * 100 AS p_fallas_red
+                  FROM hechos_llamadas 
+                  JOIN  dim_tiempo  ON dim_tiempo.FechaSK= hechos_llamadas.id_fecha
+                  JOIN  dim_uas  ON dim_uas.idSK= hechos_llamadas.id_ua
+                  JOIN  dim_horas  ON dim_horas.horaSK = hechos_llamadas.id_hora
+                  JOIN dim_traficos co on dim_traficos.traficoSK = hechos_llamadas.id_trafico
+                  WHERE dim_tiempo.Anio = 2016 
+                  and dim_horas.hora = '10'
+                  GROUP BY dim_tiempo.Anio,dim_uas.region_nombre,dim_horas.hora,dim_traficos.nombre as trafico
+order by dim_uas.region_nombre,dim_horas.hora
+
+ 
+ creacion de vistas
+ 
+CREATE MATERIALIZED VIEW q6v_mat 
+ENGINE = SummingMergeTree
+PARTITION BY dim_tiempo.Anio 
+ORDER BY dim_tiempo.Anio
+POPULATE
+AS
+SELECT dim_tiempo.Anio,dim_uas.region_nombre,dim_horas.hora,dim_traficos.nombre as trafico,
+                    SUM(intentos) AS intentosP,
+                      SUM(exitos) AS exitosP,
+                      (exitosP * 100) / intentosP AS p_contestadas,
+                      (((exitosP + SUM(oc)) + SUM(nc)) * 100) / SUM(intentos) AS p_completadas,
+                      SUM(fallas) AS no_exitosas,
+                      (no_exitosas / intentosP) * 100 AS p_no_exitosa,
+                      SUM(oc) AS oc_,
+                      SUM(nc) AS nc_,
+                      SUM(comp_cliente) AS lib_cliente,
+                      SUM(fallas_nc) AS fallas_red,
+                      (fallas_red / intentosP) * 100 AS p_fallas_red
+                  FROM hechos_llamadas 
+                  JOIN  dim_tiempo  ON dim_tiempo.FechaSK= hechos_llamadas.id_fecha
+                  JOIN  dim_uas  ON dim_uas.idSK= hechos_llamadas.id_ua
+                  JOIN  dim_horas  ON dim_horas.horaSK = hechos_llamadas.id_hora
+                  JOIN dim_traficos co on dim_traficos.traficoSK = hechos_llamadas.id_trafico
+                  WHERE dim_tiempo.Anio = 2016 
+                  and dim_horas.hora = '10'
+                  GROUP BY dim_tiempo.Anio,dim_uas.region_nombre,dim_horas.hora,dim_traficos.nombre as trafico
+
+
+-- Creacion de vistas materializas
+CREATE MATERIALIZED VIEW q5v_mat 
+ENGINE = SummingMergeTree
+PARTITION BY dim_tiempo.NMes3L  
+ORDER BY dim_tiempo.NMes3L 
+POPULATE
+AS
+SELECT dim_tiempo.Anio,dim_tiempo.NMes3L,dim_uas.region_nombre,dim_horas.hora,
+                    SUM(intentos) AS intentosP,
+                      SUM(exitos) AS exitosP,
+                      (exitosP * 100) / intentosP AS p_contestadas,
+                      (((exitosP + SUM(oc)) + SUM(nc)) * 100) / SUM(intentos) AS p_completadas,
+                      SUM(fallas) AS no_exitosas,
+                      (no_exitosas / intentosP) * 100 AS p_no_exitosa,
+                      SUM(oc) AS oc_,
+                      SUM(nc) AS nc_,
+                      SUM(comp_cliente) AS lib_cliente,
+                      SUM(fallas_nc) AS fallas_red,
+                      (fallas_red / intentosP) * 100 AS p_fallas_red
+                  FROM hechos_llamadas h
+                  JOIN  dim_tiempo  ON dim_tiempo.FechaSK= hechos_llamadas.id_fecha
+                  JOIN  dim_uas  ON dim_uas.idSK= hechos_llamadas.id_ua
+                  JOIN  dim_horas ha ON dim_horas.horaSK = hechos_llamadas.id_hora
+                 
+                  GROUP BY dim_tiempo.Anio,dim_tiempo.NMes3L,dim_uas.region_nombre,dim_horas.hora
+
